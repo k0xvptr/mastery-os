@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"github.com/k0xvptr/mastery-os-app/internal/db"
 	"github.com/google/uuid"
+	"io"
+	"time"
 )
 
 func HandleSubject(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +20,7 @@ func HandleSubject(w http.ResponseWriter, r *http.Request) {
 	if (subjectName != "ENG" && subjectName != "MATH" && subjectName != "SCI") {
 		http.Error(w, "Invalid Subject", http.StatusNotFound);
 	} else {
-		url := "http://localhost:8081/generate";
+		url := "http://localhost:8080/generate";
 		data := map[string]string{ "subject": subjectName, "amount" : "Generate 5 Cards" };
 
 		jsonData, _ := json.Marshal(data);
@@ -84,7 +86,7 @@ func HandleFinishGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	aiPayload, _ := json.Marshal(dataforAI);
-	resp, err := http.Post("http://localhost:8081/verify", "application/json", bytes.NewBuffer(aiPayload));
+	resp, err := http.Post("http://localhost:8080/mini-game/submit", "application/json", bytes.NewBuffer(aiPayload));
 	
 	if err != nil {
 		return;
@@ -96,16 +98,44 @@ func HandleFinishGame(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to decode AI grades", http.StatusInternalServerError)
 		return;
 	}
+
+	for i, res := range grades {
+        state.Attempts = append(state.Attempts, engine.Attempt{
+            CardID:     submission.CardIDs[i],
+            UserResponse: submission.UserAnswers[i],
+            Quality:      res.Score,
+            AIResponse:   res.Feedback,
+            Timestamp:  time.Now().Unix(),
+        })
+    }
+    db.SaveState(state)
+
+    // 7. Directly send the results back to Frontend
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(grades);
 }
 
-func HandleFeedBackPage(w http.ResponseWriter, r *http.Request) {
-		
+func HandleAITutor(w http.ResponseWriter, r *http.Request) {
+	var prompt []byte;	
+	err := json.NewDecoder(r.Body).Decode(&prompt);
+	if err != nil {
+		return;
+	}
+	resp, err := http.Post("http://localhost:8080/prompt", "application/json", bytes.NewBuffer(prompt));
+	if err != nil {
+		http.Error(w, "AI Offline", 503);
+		return;
+	}
+	defer resp.Body.Close();
+	
+	w.Header().Set("content-Type", "text/plain");
+	io.Copy(w, resp.Body);
 }
 
 func main() {
 	http.HandleFunc("/mini-game/subject", HandleSubject);
-	http.HandleFunc("/analytics", HandleFeedBackPage);
-	http.HandleFunc("/mini-game/finished", HandleFinishGame);
+	http.HandleFunc("/mini-game/submit-answer", HandleFinishGame);
+	http.HandleFunc("/tutor/chat", HandleAITutor);
 
 	port := ":8081";
 	http.ListenAndServe(port, nil);
