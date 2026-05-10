@@ -80,15 +80,6 @@ def receive_from_kingsley():
     # This sends the {question: answer} dict back to Kingsley immediately
     return jsonify(final_result), 200
 
-
-# 5. START THE SERVER ON PORT 8080
-if __name__ == '__main__':
-    # '0.0.0.0' allows other computers on the network to find you
-    app.run(host='0.0.0.0', port=8080)
-
-app = Flask(__name__)
-
-
 @app.route('/mini-game/submit', methods=['POST'])
 def handle_submit():
     # .get_json() automatically converts the incoming JSON into a Python Dictionary
@@ -104,6 +95,9 @@ def handle_submit():
     
     return jsonify(final)
 
-
+# 5. START THE SERVER ON PORT 8080
 if __name__ == '__main__':
-    app.run(port=8080)
+    # '0.0.0.0' allows other computers on the network to find you
+    app.run(host='0.0.0.0', port=8080)
+
+app = Flask(__name__)
