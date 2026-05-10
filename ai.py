@@ -21,7 +21,7 @@ a_agent = Agent(model,
                 system_prompt="given you the question, returns a solution with explanations",
                 tools=[])
 
-g_agent = Agent(model, system_prompt="Answer the question precisely and very understandable", tools=[])
+g_agent = Agent(model, system_prompt="Answer the question precisely and make it very understandable", tools=[])
 
 class Evaluation(BaseModel):
     score: int
