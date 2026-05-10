@@ -8,7 +8,7 @@ import (
 	"github.com/k0xvptr/mastery-os-app/internal/engine"
 )
 
-const Path = "data/db.json";
+const Path = "db/db.json";
 
 func LoadState() engine.UserData {
 	data, err := os.ReadFile(Path);	

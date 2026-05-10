@@ -18,7 +18,7 @@ func HandleSubject(w http.ResponseWriter, r *http.Request) {
 	if (subjectName != "ENG" && subjectName != "MATH" && subjectName != "SCI") {
 		http.Error(w, "Invalid Subject", http.StatusNotFound);
 	} else {
-		url := "http://localhost:8080/generate";
+		url := "http://localhost:8081/generate";
 		data := map[string]string{ "subject": subjectName, "amount" : "Generate 5 Cards" };
 
 		jsonData, _ := json.Marshal(data);
@@ -84,7 +84,7 @@ func HandleFinishGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	aiPayload, _ := json.Marshal(dataforAI);
-	resp, err := http.Post("", "application/json", bytes.NewBuffer(aiPayload));
+	resp, err := http.Post("http://localhost:8081/verify", "application/json", bytes.NewBuffer(aiPayload));
 	
 	if err != nil {
 		return;
