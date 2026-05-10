@@ -38,13 +38,13 @@ def solution_agent(datas: str) -> str:
         return f"Error: {e}"
 
 
-def generate_questions(data: str, amount: int) -> dict:
-    output = {}
+def generate_questions(data: str, amount: int) -> list[dict]:
+    output = []
     for _ in range(amount):
         # Using your existing logic to pair a question with a solution
         q = question_agent(data)
         s = solution_agent(data)
-        output[q] = s
+        output.append({"question": q, "solution": s})
     return output
 
 
