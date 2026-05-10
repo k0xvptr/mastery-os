@@ -21,12 +21,6 @@ a_agent = Agent(model,
                 system_prompt="given you the question, returns a solution with explanations",
                 tools=[])
 
-verify_agent = Agent(model, 
-                     system_prompt="""given you 2 answers, the one that is from the user and one that is the original answer. 
-                     Rate the user's answer from 0 to 5 and explain why. Output in the format ([score] [reasoning]). Please don't include the brackets
-                     """,
-                     tools=[])
-
 class Evaluation(BaseModel):
     score: int
     feedback: str
