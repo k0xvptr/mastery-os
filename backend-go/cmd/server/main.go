@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"encoding/json"
 	"github.com/k0xvptr/mastery-os-app/internal/db"
-	"github.com/google/uuid"
 	"io"
 	"time"
 	"fmt"
@@ -36,10 +35,6 @@ func HandleSubject(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(resp.Body).Decode(&newCards); err != nil {
 			http.Error(w, "Failed to process AI response", http.StatusInternalServerError);
 			return;
-		}
-
-		for i := range newCards {
-			newCards[i].ID = uuid.New().String();
 		}
 
 		state := db.LoadState();

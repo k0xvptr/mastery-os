@@ -1,7 +1,6 @@
 package engine;
 
 type Card struct {
-	ID string `json:"id"`; // Unique Identifier for card
 	Question string `json:"question"`; 
 	Answer string `json:"answer"`;
 }
