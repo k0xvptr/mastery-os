@@ -82,7 +82,7 @@ def receive_from_kingsley():
     count = incoming_data.get("amount", 1)
 
     # Process using your agents
-    final_result = generate_questions(prompt_text, count)
+    final_result = generate_questions(prompt_text, int(count))
 
     # 4. SEND DATA BACK (The "Response")
     # This sends the {question: answer} dict back to Kingsley immediately
