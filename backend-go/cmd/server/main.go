@@ -9,6 +9,7 @@ import (
 	"io"
 	"time"
 	"fmt"
+	"strings"
 )
 
 func HandleSubject(w http.ResponseWriter, r *http.Request) {
@@ -113,25 +114,26 @@ func HandleFinishGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleAITutor(w http.ResponseWriter, r *http.Request) {
-	var prompt []byte;	
+	var prompt string;	
 	err := json.NewDecoder(r.Body).Decode(&prompt);
 	if err != nil {
+		http.Error(w, "Cannot decode prompt from user", http.StatusInternalServerError);
 		return;
 	}
-	resp, err := http.Post("http://localhost:8080/prompt", "application/json", bytes.NewBuffer(prompt));
+	resp, err := http.Post("http://localhost:8080/prompt", "application/json", strings.NewReader(prompt));
 	if err != nil {
 		http.Error(w, "AI Offline", 503);
 		return;
 	}
 	defer resp.Body.Close();
 	
-	w.Header().Set("content-Type", "text/plain");
-	io.Copy(w, resp.Body);
+	w.Header().Set("content-Type", "application/json");
+	json.NewEncoder(w).Encode(map[string]string{ "reply" : prompt });
 }
 
 func main() {
-	http.HandleFunc("/mini-game/subject", HandleSubject);
-	http.HandleFunc("/mini-game/submit-answer", HandleFinishGame);
+	http.HandleFunc("/mini-games/subject", HandleSubject);
+	http.HandleFunc("/mini-games/submit-answer", HandleFinishGame);
 	http.HandleFunc("/tutor/chat", HandleAITutor);
 
 	port := ":8081";
