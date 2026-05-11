@@ -105,7 +105,7 @@ def handle_submit():
 @app.route('/prompt', methods=['POST'])
 def tutorprompt():
     data = request.get_json()
-    return general_questions(data)
+    return general_questions(data['prompt'])
 
 
 # 5. START THE SERVER ON PORT 8080
