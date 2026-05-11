@@ -16,104 +16,114 @@ type TutorResponse struct {
 }
 
 func HandleSubject(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*");
-	w.Header().Set("Content-Type", "application/json");
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Content-Type", "application/json")
 
-	query := r.URL.Query();
-	subjectName := query.Get("subject");
-	if (subjectName != "ENG" && subjectName != "MATH" && subjectName != "SCI") {
-		http.Error(w, "Invalid Subject", http.StatusNotFound);
-	} else {
-		url := "http://localhost:8080/generate";
-		data := map[string]string{ "subject": subjectName, "amount" : "1" };
+    subjectName := r.URL.Query().Get("subject")
+    if (subjectName != "ENG" && subjectName != "MATH" && subjectName != "SCI") {
+        http.Error(w, "Invalid Subject", http.StatusNotFound)
+        return
+    }
+    con := map[string]string{"ENG" : "sentence structure", "MATH" : "Functions", "SCI" : "Chemistry"}
+    url := "http://localhost:8080/generate"
+    data := map[string]string{"subject": subjectName, "amount": "1", "concept" : con[subjectName]}
+    jsonData, _ := json.Marshal(data)
 
-		jsonData, _ := json.Marshal(data);
+    resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+    if err != nil {
+        http.Error(w, "AI Service Down", http.StatusInternalServerError)
+        return  // ← also missing here
+    }
+    defer resp.Body.Close()
 
-		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData));
-		if (err != nil) {
-			http.Error(w, "AI Service Down", http.StatusInternalServerError);
-		}
-		defer resp.Body.Close();
+    var newCards []engine.Card
+    if err := json.NewDecoder(resp.Body).Decode(&newCards); err != nil {
+        fmt.Printf("JSON Decode Error: %v\n", err)
+        http.Error(w, "Failed to process AI response", http.StatusInternalServerError)
+        return
+    }
 
-		var newCards []engine.Card;
-		if err := json.NewDecoder(resp.Body).Decode(&newCards); err != nil {
-			fmt.Printf("JSON Decode Error: %v\n", err);
-			http.Error(w, "Failed to process AI response", http.StatusInternalServerError);
-			return;
-		}
+    state := db.LoadState()
+    state.Cards = append(state.Cards, newCards...)
+    db.SaveState(state)
 
-		state := db.LoadState();
-		state.Cards = append(state.Cards, newCards...);
-		db.SaveState(state);
-
-		json.NewEncoder(w).Encode(newCards);
-	}
+    json.NewEncoder(w).Encode(newCards)
 }
 
 func HandleFinishGame(w http.ResponseWriter, r *http.Request) {
-	var submission engine.GameSubmission;
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Content-Type", "application/json")
 
-	err := json.NewDecoder(r.Body).Decode(&submission);
-	if (err != nil) {
-		http.Error(w, "Failed to process user response", http.StatusInternalServerError);
-		return;
-	}
+    var submission engine.GameSubmission
+    err := json.NewDecoder(r.Body).Decode(&submission)
+    if err != nil {
+        http.Error(w, "Failed to process user response", http.StatusInternalServerError)
+        return
+    }
 
-	state := db.LoadState();
-	var dataforAI []engine.Comparison;
-	for i, id := range submission.CardIDs {
-	    userAnswer := submission.UserAnswers[i];
+    if len(submission.CardIDs) != len(submission.UserAnswers) {
+        http.Error(w, "Mismatched card IDs and answers", http.StatusBadRequest)
+        return
+    }
 
-		var targetCard engine.Card;
-		found := false;
+    state := db.LoadState()
+    var dataforAI []engine.Comparison
 
-		for _, card := range state.Cards {
-			if (card.ID == id) {
-				targetCard = card;
-				found = true;
-				break;
-			}
-		}
+    for i, id := range submission.CardIDs {
+        userAnswer := submission.UserAnswers[i]
 
-		dataforAI = append(dataforAI, engine.Comparison{
-			UserAnswer : userAnswer,
-			CorrectAnswer: targetCard.Answer,
-		})
+        var targetCard engine.Card
+        found := false
+        for _, card := range state.Cards {
+            if card.ID == id {
+                targetCard = card
+                found = true
+                break
+            }
+        }
 
-		if !found {
-			http.Error(w, "Card Not Found in DB", http.StatusInternalServerError);
-			return;
-		}
-	}
+        if !found {
+            http.Error(w, fmt.Sprintf("Card %s not found in DB", id), http.StatusNotFound)
+            return
+        }
 
-	aiPayload, _ := json.Marshal(dataforAI);
-	resp, err := http.Post("http://localhost:8080/mini-game/submit", "application/json", bytes.NewBuffer(aiPayload));
+        dataforAI = append(dataforAI, engine.Comparison{
+            UserAnswer:    userAnswer,
+            CorrectAnswer: targetCard.Answer,
+        })
+    }
 
-	if err != nil {
-		return;
-	}
-	defer resp.Body.Close()
+    aiPayload, _ := json.Marshal(dataforAI)
+    resp, err := http.Post("http://localhost:8080/mini-game/submit", "application/json", bytes.NewBuffer(aiPayload))
+    if err != nil {
+        http.Error(w, "AI Service Down", http.StatusInternalServerError)
+        return
+    }
+    defer resp.Body.Close()
 
-	var grades []engine.AIResp;
-	if err := json.NewDecoder(resp.Body).Decode(&grades); err != nil {
-		http.Error(w, "Failed to decode AI grades", http.StatusInternalServerError)
-		return;
-	}
+    var grades []engine.AIResp
+    if err := json.NewDecoder(resp.Body).Decode(&grades); err != nil {
+        http.Error(w, "Failed to decode AI grades", http.StatusInternalServerError)
+        return
+    }
 
-	for i, res := range grades {
+    if len(grades) != len(submission.CardIDs) {
+        http.Error(w, "AI returned unexpected number of grades", http.StatusInternalServerError)
+        return
+    }
+
+    for i, res := range grades {
         state.Attempts = append(state.Attempts, engine.Attempt{
-            CardID:     submission.CardIDs[i],
+            CardID:       submission.CardIDs[i],
             UserResponse: submission.UserAnswers[i],
             Quality:      res.Score,
             AIResponse:   res.Feedback,
-            Timestamp:  time.Now().Unix(),
+            Timestamp:    time.Now().Unix(),
         })
     }
     db.SaveState(state)
 
-    // 7. Directly send the results back to Frontend
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(grades);
+    json.NewEncoder(w).Encode(grades)
 }
 
 func HandleAITutor(w http.ResponseWriter, r *http.Request) {
@@ -153,3 +163,4 @@ func main() {
 		fmt.Printf("Server failed to start: %v\n", err);
 	}
 }
+
