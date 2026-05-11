@@ -13,13 +13,13 @@ model = GoogleModel("gemini-3-flash-preview")
 app = Flask(__name__)
 
 q_agent = Agent(model,
-                system_prompt="generates 5 question based on data I give you (subject, uploaded files, JSON)",
+                system_prompt="Make 5 question based on data I give you (subject, uploaded files, JSON) Only give me the question, don't write any intro",
                 tools=[])
 f_agent = Agent(model,
-                system_prompt="given you data on what the user did bad, returnss feedback on how to improve",
+                system_prompt="given you data on what the user did bad, returnss feedback on how to improve. Only give the feedback, don't write any intro",
                 tools=[])
 a_agent = Agent(model,
-                system_prompt="given you the question, returns a solution with explanations",
+                system_prompt="given you the question, returns a solution with explanations, Jump directly to the topic, don't write any intro",
                 tools=[])
 
 g_agent = Agent(model, system_prompt="Answer the question precisely and make it very understandable", tools=[])
