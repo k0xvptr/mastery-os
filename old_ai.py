@@ -8,7 +8,7 @@ import uuid
 
 # 1. SETUP & AGENT INITIALIZATION
 load_dotenv()
-model = GoogleModel("gemini-3-flash-preview")
+model = GoogleModel("gemini-3.1-flash-lite")
 
 app = Flask(__name__)
 
@@ -54,12 +54,15 @@ def solution_agent(datas: str) -> str:
         return f"Error: {e}"
 
 
+import time
+
 def generate_questions(data: str, amount: int, concept : str) -> list[dict]:
     output = []
     for _ in range(amount):
-        # Using your existing logic to pair a question with a solution
         q = question_agent(data+" "+ "Concept to test user on: " + concept)
+        time.sleep(2) # Add this to slow down and avoid 429 errors
         s = solution_agent(q)
+        time.sleep(2) # Add this as well
         middle = {"question": q, "answer": s, "id" : str(uuid.uuid4())}
         output.append(middle.copy())
     return output
