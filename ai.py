@@ -4,6 +4,7 @@ from pydantic_ai.models.google import GoogleModel
 from dotenv import load_dotenv
 from pydantic_ai import Agent
 from pydantic import BaseModel
+import uuid
 
 # 1. SETUP & AGENT INITIALIZATION
 load_dotenv()
@@ -59,7 +60,7 @@ def generate_questions(data: str, amount: int) -> list[dict]:
         # Using your existing logic to pair a question with a solution
         q = question_agent(data)
         s = solution_agent(data)
-        output.append({"question": q, "answer": s})
+        output.append({"question": q, "answer": s. "id" : str(uuid.uuid4())})
     return output
 
 def general_questions(data : str):
