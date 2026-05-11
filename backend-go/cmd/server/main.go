@@ -21,7 +21,7 @@ func HandleSubject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid Subject", http.StatusNotFound);
 	} else {
 		url := "http://localhost:8080/generate";
-		data := map[string]string{ "subject": subjectName, "amount" : "2" };
+		data := map[string]string{ "subject": subjectName, "amount" : "1" };
 
 		jsonData, _ := json.Marshal(data);
 		
