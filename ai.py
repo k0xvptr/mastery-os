@@ -33,7 +33,6 @@ class Evaluation(BaseModel):
 # Unified generator agent
 generator_agent = Agent(
     model,
-    result_type=QAList,
     system_prompt=(
         "You are an educational assistant. Based on the provided subject or data, "
         "generate the requested number of high-quality questions and their "
@@ -55,7 +54,7 @@ g_agent = Agent(model, system_prompt="Answer the question precisely and make it 
 def generate_questions_logic(data: str, amount: int) -> list[dict]:
     try:
         # One single call to the LLM to get 'amount' of Q&A pairs
-        resp = generator_agent.run_sync(f"Generate {amount} questions about: {data}")
+        resp = generator_agent.run_sync(f"Generate {amount} questions about: {data}", result_type=QAList)
 
         # Format the output to include the UUIDs your frontend expects
         output = []
