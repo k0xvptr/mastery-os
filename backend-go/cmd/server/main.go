@@ -58,7 +58,7 @@ func HandleFinishGame(w http.ResponseWriter, r *http.Request) {
 	state := db.LoadState();
 	var dataforAI []engine.Comparison;
 	for i, id := range submission.CardIDs {
-		userAnswer := submission.UserAnswers[i];
+	q	userAnswer := submission.UserAnswers[i];
 
 		var targetCard engine.Card;
 		found := false;
@@ -129,8 +129,8 @@ func HandleAITutor(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close();
 	
-	w.Header().Set("content-Type", "application/json");
-	json.NewEncoder(w).Encode(map[string]string{ "reply" : prompt });
+	w.Header().Set("content-Type", "text/plain");
+	w.Write([]byte(prompt));
 }
 
 func main() {
