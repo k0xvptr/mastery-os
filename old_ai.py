@@ -80,6 +80,7 @@ def receive_from_kingsley():
     # If they don't send an 'amount', we default to 1
     prompt_text = incoming_data.get("subject", '')
     count = int(incoming_data.get("amount", 1))
+    concept = incoming_data.get("concept", "random")
 
     # Process using your agents
     final_result = generate_questions(prompt_text, count)
