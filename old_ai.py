@@ -59,7 +59,7 @@ def generate_questions(data: str, amount: int) -> list[dict]:
     for _ in range(amount):
         # Using your existing logic to pair a question with a solution
         q = question_agent(data)
-        s = solution_agent(data)
+        s = solution_agent(q)
         output.append({"question": q, "answer": s, "id" : str(uuid.uuid4())})
     return output
 
