@@ -8,8 +8,12 @@ import (
 	"github.com/k0xvptr/mastery-os-app/internal/db"
 	"time"
 	"fmt"
-	"strings"
+	"io"
 )
+
+type TutorResponse struct {
+    Reply string `json:"reply"`
+}
 
 func HandleSubject(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*");
@@ -24,7 +28,7 @@ func HandleSubject(w http.ResponseWriter, r *http.Request) {
 		data := map[string]string{ "subject": subjectName, "amount" : "1" };
 
 		jsonData, _ := json.Marshal(data);
-		
+
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData));
 		if (err != nil) {
 			http.Error(w, "AI Service Down", http.StatusInternalServerError);
@@ -43,7 +47,7 @@ func HandleSubject(w http.ResponseWriter, r *http.Request) {
 		db.SaveState(state);
 
 		json.NewEncoder(w).Encode(newCards);
-	}	
+	}
 }
 
 func HandleFinishGame(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +62,7 @@ func HandleFinishGame(w http.ResponseWriter, r *http.Request) {
 	state := db.LoadState();
 	var dataforAI []engine.Comparison;
 	for i, id := range submission.CardIDs {
-	q	userAnswer := submission.UserAnswers[i];
+	    userAnswer := submission.UserAnswers[i];
 
 		var targetCard engine.Card;
 		found := false;
@@ -84,7 +88,7 @@ func HandleFinishGame(w http.ResponseWriter, r *http.Request) {
 
 	aiPayload, _ := json.Marshal(dataforAI);
 	resp, err := http.Post("http://localhost:8080/mini-game/submit", "application/json", bytes.NewBuffer(aiPayload));
-	
+
 	if err != nil {
 		return;
 	}
@@ -113,13 +117,15 @@ func HandleFinishGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleAITutor(w http.ResponseWriter, r *http.Request) {
-	var prompt string;	
+	var prompt struct {
+        Message string `json:"message"`
+    }
 	err := json.NewDecoder(r.Body).Decode(&prompt);
 	if err != nil {
 		http.Error(w, "Cannot decode prompt from user", http.StatusInternalServerError);
 		return;
 	}
-	data := map[string]string{ "prompt" : prompt };
+	data := map[string]string{ "prompt" : prompt.Message};
 	jsonData, _ := json.Marshal(data);
 
 	resp, err := http.Post("http://localhost:8080/prompt", "application/json", bytes.NewBuffer(jsonData));
@@ -128,9 +134,12 @@ func HandleAITutor(w http.ResponseWriter, r *http.Request) {
 		return;
 	}
 	defer resp.Body.Close();
-	
-	w.Header().Set("content-Type", "text/plain");
-	w.Write([]byte(prompt));
+
+	aiText, _ := io.ReadAll(resp.Body)
+
+    // 4. Wrap it in JSON and send to frontend
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(TutorResponse{Reply: string(aiText)})
 }
 
 func main() {
